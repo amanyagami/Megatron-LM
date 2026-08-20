@@ -296,6 +296,11 @@ def _build_shard_distribution(
     shard_to_saving_rank = distribute_shards_to_ranks(
         shard_to_ranks, shard_to_size, len(all_shards), cross_parallelization_group_loads
     )
+    shard_to_metadata = {
+        shard_id: metadata
+        for shard_id, metadata in shard_to_metadata.items()
+        if shard_id in shards_in_this_group
+    }
 
     return ShardDistribution(
         shard_to_saving_rank, shards_in_this_group, shard_to_metadata, shard_to_ranks

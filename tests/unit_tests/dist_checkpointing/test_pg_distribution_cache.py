@@ -22,6 +22,7 @@ import torch
 from megatron.core.dist_checkpointing import ShardedTensor, exchange_utils
 from megatron.core.dist_checkpointing.core import CheckpointingException
 from megatron.core.dist_checkpointing.exchange_utils import (
+    _build_shard_distribution,
     _load_pg_dist_cache,
     _pg_dist_cache_file_path,
     determine_main_replica_uniform_distribution,
@@ -65,6 +66,21 @@ def _rank_marked_state_dict():
         )
         for i in range(4)
     }
+
+
+def test_distribution_filters_metadata_outside_the_group():
+    shard_in_group = ShardedTensor.from_rank_offsets("in_group", torch.ones(1))
+    shard_outside_group = ShardedTensor.from_rank_offsets(
+        "outside_group", torch.ones(1), replica_id=1
+    )
+    distribution = _build_shard_distribution(
+        [[shard_in_group], [shard_outside_group]], ignore_groups=False
+    )
+
+    assert distribution.shards_in_this_group == {
+        exchange_utils._sharded_tensor_shard_id(shard_in_group)
+    }
+    assert set(distribution.shard_to_metadata) == distribution.shards_in_this_group
 
 
 class TestPgDistributionCache:
